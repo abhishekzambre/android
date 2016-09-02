@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">AZ Health Monitor</string>
+    <string name="textHeader">Enter Patient Details</string>
 </resources>
