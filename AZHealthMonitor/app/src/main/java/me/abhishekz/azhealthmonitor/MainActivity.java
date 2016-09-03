@@ -1,6 +1,11 @@
 package me.abhishekz.azhealthmonitor;
 
 import android.content.Intent;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Menu;
@@ -8,10 +13,14 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.TextView;
+
+import java.util.Queue;
 
 public class MainActivity extends AppCompatActivity {
 
-    float[] values = new float[] { 0,5,3,9,5,0,6,4,7,8,4,2,4,6,4,4,6,3,2,1,0,8 };
+    float[] values = new float[] { 0,0,0,0,0,0,0,0,0,0 };
     String[] verlabels = new String[] { "3000", "2500", "2000", "1500", "1000", "500", "0" };
     String[] horlabels = new String[] { "0", "50", "100", "150", "200", "250", "300", "350", "400" };
     float[] emptyFloat = new float[] {0};
@@ -22,6 +31,16 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        SensorManager mySensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        Sensor LightSensor = mySensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
+
+        if (LightSensor != null) {
+            mySensorManager.registerListener(LightSensorListener,
+                    LightSensor,
+                    SensorManager.SENSOR_DELAY_NORMAL);
+
+        }
     }
 
     public void displayGraph(View view) {
@@ -58,5 +77,39 @@ public class MainActivity extends AppCompatActivity {
                 return super.onOptionsItemSelected(item);
         }
 
+    }
+
+    private final SensorEventListener LightSensorListener
+            = new SensorEventListener() {
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        }
+
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            if (event.sensor.getType() == Sensor.TYPE_LIGHT) {
+                TextView textView = (TextView) findViewById(R.id.textView);
+                textView.setText("Enter Patient Details : " + String.valueOf(event.values[0]));
+                replaceQueue(event.values[0]);
+                Button b = (Button) findViewById(R.id.button);
+                b.performClick();
+            }
+
+        }
+
+    };
+
+    void replaceQueue(float a){
+        values[0]=values[1];
+        values[1]=values[2];
+        values[2]=values[3];
+        values[3]=values[4];
+        values[4]=values[5];
+        values[5]=values[6];
+        values[6]=values[7];
+        values[7]=values[8];
+        values[8]=values[9];
+        values[9]=a;
     }
 }
