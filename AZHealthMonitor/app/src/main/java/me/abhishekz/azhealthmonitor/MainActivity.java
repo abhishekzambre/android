@@ -66,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
         layout.addView(clearView);
 
         mySensorManager.unregisterListener(LightSensorListener,mySensorManager.getDefaultSensor(Sensor.TYPE_LIGHT));
-        textView.setText("Monitor :       ");
+        textView.setText(R.string.textMonitor);
     }
 
     public boolean onCreateOptionsMenu(Menu menu) {

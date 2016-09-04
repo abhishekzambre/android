@@ -11,8 +11,5 @@ public class About extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.about);
-
-       /* TextView t2 = (TextView) findViewById(R.id.textView8);
-        t2.setMovementMethod(LinkMovementMethod.getInstance()); */
     }
 }
