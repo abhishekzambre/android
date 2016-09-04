@@ -49,6 +49,7 @@ public class GraphView extends View {
     public void setValues(float[] newValues)
     {
         this.values = newValues;
+        paint = new Paint();
     }
 
     @Override

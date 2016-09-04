@@ -27,13 +27,22 @@ public class MainActivity extends AppCompatActivity {
     GraphView graphView, clearView;
     ViewGroup layout;
 
+    TextView textView;
+
+    SensorManager mySensorManager;
+    Sensor LightSensor;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+    }
 
-        SensorManager mySensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-        Sensor LightSensor = mySensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
+    public void displayGraph(View view) {
+        layout = (ViewGroup) findViewById(R.id.graphLayout);
+
+        mySensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        LightSensor = mySensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
 
         if (LightSensor != null) {
             mySensorManager.registerListener(LightSensorListener,
@@ -41,10 +50,6 @@ public class MainActivity extends AppCompatActivity {
                     SensorManager.SENSOR_DELAY_NORMAL);
 
         }
-    }
-
-    public void displayGraph(View view) {
-        layout = (ViewGroup) findViewById(R.id.graphLayout);
 
         graphView = new GraphView(this, values, "AZ Health Monitor",horlabels, verlabels, GraphView.LINE);
         graphView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -59,6 +64,9 @@ public class MainActivity extends AppCompatActivity {
         clearView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         layout.removeAllViews();
         layout.addView(clearView);
+
+        mySensorManager.unregisterListener(LightSensorListener,mySensorManager.getDefaultSensor(Sensor.TYPE_LIGHT));
+        textView.setText("Monitor :       ");
     }
 
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -89,11 +97,11 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onSensorChanged(SensorEvent event) {
             if (event.sensor.getType() == Sensor.TYPE_LIGHT) {
-                TextView textView = (TextView) findViewById(R.id.textView);
-                textView.setText("Enter Patient Details : " + String.valueOf(event.values[0]));
+                textView = (TextView) findViewById(R.id.textView2);
+                textView.setText("Monitor : " + String.valueOf(event.values[0]));
                 replaceQueue(event.values[0]);
-                Button b = (Button) findViewById(R.id.button);
-                b.performClick();
+                graphView.invalidate();
+                graphView.setValues(values);
             }
 
         }
