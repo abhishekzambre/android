@@ -64,7 +64,6 @@ public class GraphView extends View {
         float graphheight = height - (2 * border);
         float graphwidth = width - (2 * border);
 
-
         paint.setTextAlign(Align.LEFT);
         int vers = verlabels.length - 1;
         for (int i = 0; i < verlabels.length; i++) {

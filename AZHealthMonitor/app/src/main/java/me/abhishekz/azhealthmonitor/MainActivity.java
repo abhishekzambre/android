@@ -20,12 +20,14 @@ import java.util.Queue;
 
 public class MainActivity extends AppCompatActivity {
 
-    float[] values = new float[] { 0,0,0,0,0,0,0,0,0,0 };
+    float[] values = new float[60];
     String[] verlabels = new String[] { "3000", "2500", "2000", "1500", "1000", "500", "0" };
     String[] horlabels = new String[] { "0", "50", "100", "150", "200", "250", "300", "350", "400" };
     float[] emptyFloat = new float[] {0};
     GraphView graphView, clearView;
     ViewGroup layout;
+
+    boolean SensorInitialized=false;
 
     TextView textView;
 
@@ -36,10 +38,17 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        layout = (ViewGroup) findViewById(R.id.graphLayout);
+
+        textView = (TextView) findViewById(R.id.textView3);
+
+        graphView = new GraphView(this, values, "AZ Health Monitor",horlabels, verlabels, GraphView.LINE);
+        graphView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        layout.addView(graphView);
     }
 
     public void displayGraph(View view) {
-        layout = (ViewGroup) findViewById(R.id.graphLayout);
 
         mySensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         LightSensor = mySensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
@@ -48,11 +57,16 @@ public class MainActivity extends AppCompatActivity {
             mySensorManager.registerListener(LightSensorListener,
                     LightSensor,
                     SensorManager.SENSOR_DELAY_NORMAL);
-
         }
 
-        graphView = new GraphView(this, values, "AZ Health Monitor",horlabels, verlabels, GraphView.LINE);
+        SensorInitialized=true;
+
+        layout = (ViewGroup) findViewById(R.id.graphLayout);
+
+        graphView = new GraphView(this, emptyFloat, "AZ Health Monitor",horlabels, verlabels, GraphView.LINE);
         graphView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        for(int i=0; i<values.length; i++)
+            values[i]=0f;
         layout.removeAllViews();
         layout.addView(graphView);
     }
@@ -65,8 +79,15 @@ public class MainActivity extends AppCompatActivity {
         layout.removeAllViews();
         layout.addView(clearView);
 
-        mySensorManager.unregisterListener(LightSensorListener,mySensorManager.getDefaultSensor(Sensor.TYPE_LIGHT));
-        textView.setText(R.string.textMonitor);
+        for(int i=0; i<values.length; i++)
+            values[i]=0f;
+
+        if (SensorInitialized)
+            mySensorManager.unregisterListener(LightSensorListener,mySensorManager.getDefaultSensor(Sensor.TYPE_LIGHT));
+        else
+            SensorInitialized=false;
+
+        textView.setText(R.string.textMonitorVal);
     }
 
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -97,8 +118,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onSensorChanged(SensorEvent event) {
             if (event.sensor.getType() == Sensor.TYPE_LIGHT) {
-                textView = (TextView) findViewById(R.id.textView2);
-                textView.setText("Monitor : " + String.valueOf(event.values[0]));
+                textView.setText(String.valueOf(event.values[0]));
                 replaceQueue(event.values[0]);
                 graphView.invalidate();
                 graphView.setValues(values);
@@ -109,15 +129,8 @@ public class MainActivity extends AppCompatActivity {
     };
 
     void replaceQueue(float a){
-        values[0]=values[1];
-        values[1]=values[2];
-        values[2]=values[3];
-        values[3]=values[4];
-        values[4]=values[5];
-        values[5]=values[6];
-        values[6]=values[7];
-        values[7]=values[8];
-        values[8]=values[9];
-        values[9]=a;
+        for(int i=1; i<values.length; i++)
+            values[i-1]=values[i];
+        values[values.length-1]=a;
     }
 }
