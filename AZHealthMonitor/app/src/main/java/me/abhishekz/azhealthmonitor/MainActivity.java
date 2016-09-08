@@ -1,5 +1,6 @@
 package me.abhishekz.azhealthmonitor;
 
+import android.content.Context;
 import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -13,8 +14,11 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.RadioGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.Queue;
 
@@ -27,9 +31,8 @@ public class MainActivity extends AppCompatActivity {
 
     GraphView graphView;
     ViewGroup layout;
-    TextView textView;
-    private final SensorEventListener LightSensorListener
-            = new SensorEventListener() {
+    TextView textView, textFirst, textLast, textID, textAge;
+    private final SensorEventListener LightSensorListener = new SensorEventListener() {
 
         @Override
         public void onAccuracyChanged(Sensor sensor, int accuracy) {
@@ -47,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
     };
+    InputMethodManager inputManager;
     SensorManager mySensorManager;
     Sensor LightSensor;
 
@@ -56,6 +60,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         textView = (TextView) findViewById(R.id.textView3);
+
         layout = (ViewGroup) findViewById(R.id.graphLayout);
         graphView = new GraphView(this, values, "AZ Health Monitor", horlabels, verlabels, GraphView.LINE);
         graphView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -64,18 +69,34 @@ public class MainActivity extends AppCompatActivity {
 
     public void displayGraph(View view) {
 
-        mySensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-        LightSensor = mySensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
-        if (LightSensor != null) {
-            mySensorManager.registerListener(LightSensorListener,
-                    LightSensor,
-                    SensorManager.SENSOR_DELAY_NORMAL);
+        inputManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        inputManager.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+
+        textFirst = (TextView) findViewById(R.id.editText);
+        textLast = (TextView) findViewById(R.id.editText2);
+        textID = (TextView) findViewById(R.id.editText3);
+        textAge = (TextView) findViewById(R.id.editText4);
+
+        if (textFirst.getText().toString().trim().equals("")) {
+            Toast.makeText(getApplicationContext(), "First Name is empty", Toast.LENGTH_SHORT).show();
+        } else if (textLast.getText().toString().trim().equals("")) {
+            Toast.makeText(getApplicationContext(), "Last Name is empty", Toast.LENGTH_SHORT).show();
+        } else if (textID.getText().toString().trim().equals("")) {
+            Toast.makeText(getApplicationContext(), "Patient ID is empty", Toast.LENGTH_SHORT).show();
+        } else if (textAge.getText().toString().trim().equals("")) {
+            Toast.makeText(getApplicationContext(), "Age is empty", Toast.LENGTH_SHORT).show();
+        } else {
+            mySensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+            LightSensor = mySensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
+            if (LightSensor != null) {
+                mySensorManager.registerListener(LightSensorListener, LightSensor, SensorManager.SENSOR_DELAY_NORMAL);
+            }
+            SensorInitialized = true;
+            for (int i = 0; i < values.length; i++)
+                values[i] = 0f;
+            graphView.invalidate();
+            graphView.setValues(values);
         }
-        SensorInitialized = true;
-        for (int i = 0; i < values.length; i++)
-            values[i] = 0f;
-        graphView.invalidate();
-        graphView.setValues(values);
     }
 
     public void clearGraph(View view) {
