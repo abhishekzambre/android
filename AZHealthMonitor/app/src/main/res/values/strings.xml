@@ -1,30 +1,28 @@
 <resources>
     <string name="app_name">AZ Health Monitor</string>
-    <string name="textHeader">Enter Patient Details :</string>
+    <string name="textHeader">Patient Details :</string>
     <string name="textFirst">First Name</string>
     <string name="textLast">Last Name</string>
     <string name="textID">Patient ID</string>
     <string name="textAge">Age</string>
     <string name="radioMale">Male</string>
     <string name="radioFemale">Female</string>
-    <string name="textMonitor">Monitor : </string>
+    <string name="textMonitor">Monitor: </string>
     <string name="textMonitorVal">00.0</string>
+    <string name="buttonSave">Save</string>
     <string name="buttonStart">Start</string>
     <string name="buttonStop">Stop</string>
+    <string name="buttonUpload">Upload</string>
+    <string name="buttonDownload">Download</string>
     <string name="aboutHead">CSE 535 : Mobile Computing</string>
     <string name="aboutAssign">Assignment No. 01</string>
     <string name="aboutText">
         <b>App Name :</b> AZ Health Monitor\n\n
-        <b>Version :</b> 1.0\n\n
+        <b>Version :</b> 2.0\n\n
         <b>Author :</b> Abhishek Zambre\n\n
         <b>Website :</b> <a href="abhiz.me" target="_blank">abhiz.me</a>\n\n
         <b>Class :</b> Master of Computer Science (MCS), Arizona State University\n\n
-        <b>Description :</b> Develop an UI similar to the Matlab UI for android phones.
-        Use the emulator to display the UI.
-        For graphing use the graphView class provided in the course web page.
-        Take a sample array of floats.
-        Whenever the Run button is hit the array is plotted in the canvass.
-        On clicking the stop button the view is cleared.\n\n
-        <b>Features :</b> Light sensor is used to generate values based on the recorded sensor data.
+        <b>Description :</b> Extension to v1.0 with addition to Network and Database Connectivity \n\n
+        <b>Features :</b> Light sensor from v1.0 is replaced with Accelerometer sensor.
     </string>
 </resources>

@@ -86,7 +86,7 @@
                 <RadioButton
                     android:id="@+id/radioMale"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_height="50dp"
                     android:text="@string/radioMale"
                     android:checked="true" />
 
@@ -98,6 +98,35 @@
 
             </RadioGroup>
 
+            <TextView
+                android:text="    "
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/textView9"
+                android:layout_weight="1" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/textView2"
+                android:text="@string/textMonitor"
+                android:textStyle="bold"
+                android:layout_weight="0.71" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/textView3"
+                android:layout_weight="1"
+                android:text="@string/textMonitorVal" />
+
+            <Button
+                android:text="@string/buttonSave"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/button3"
+                android:layout_weight="1" />
+
         </LinearLayout>
 
         <LinearLayout
@@ -105,35 +134,32 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:id="@+id/textView2"
-                android:layout_weight="1"
-                android:text="@string/textMonitor" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:id="@+id/textView3"
-                android:layout_weight="20"
-                android:text="@string/textMonitorVal" />
-
             <Button
-                android:layout_width="wrap_content"
+                android:layout_width="72dp"
                 android:layout_height="wrap_content"
                 android:text="@string/buttonStart"
                 android:id="@+id/button"
-                android:layout_weight="1"
                 android:onClick="displayGraph" />
 
             <Button
-                android:layout_width="wrap_content"
+                android:layout_width="63dp"
                 android:layout_height="wrap_content"
                 android:text="@string/buttonStop"
                 android:id="@+id/button2"
-                android:layout_weight="1"
                 android:onClick="clearGraph" />
+
+            <Button
+                android:text="@string/buttonUpload"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/button7" />
+
+            <Button
+                android:text="@string/buttonDownload"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/button8"
+                android:layout_weight="2" />
 
         </LinearLayout>
 

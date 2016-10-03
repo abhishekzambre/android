@@ -46,20 +46,20 @@
             android:hint="@string/textID"
             android:layout_weight="1" />
 
-    </LinearLayout>
-
-    <LinearLayout
-        android:orientation="horizontal"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-
         <EditText
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:inputType="number"
             android:hint="@string/textAge"
             android:id="@+id/editText4"
-            android:layout_weight="1.14" />
+            android:layout_weight="0.75" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
 
         <RadioGroup
             android:orientation="horizontal"
@@ -83,36 +83,41 @@
 
         </RadioGroup>
 
-        <TextView
-            android:layout_width="wrap_content"
+        <Button
+            android:text="@string/buttonSave"
+            android:layout_width="67dp"
             android:layout_height="wrap_content"
-            android:id="@+id/textView2"
-            android:layout_weight="1"
-            android:text="@string/textMonitor"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/textView3"
-            android:layout_weight="1.88"
-            android:text="@string/textMonitorVal" />
+            android:id="@+id/button3"
+            android:layout_weight="2.64" />
 
         <Button
-            android:layout_width="wrap_content"
+            android:layout_width="71dp"
             android:layout_height="wrap_content"
             android:text="@string/buttonStart"
             android:id="@+id/button"
-            android:layout_weight="1"
-            android:onClick="displayGraph" />
+            android:onClick="displayGraph"
+            android:layout_weight="1.19" />
 
         <Button
-            android:layout_width="wrap_content"
+            android:layout_width="66dp"
             android:layout_height="wrap_content"
             android:text="@string/buttonStop"
             android:id="@+id/button2"
-            android:layout_weight="1"
-            android:onClick="clearGraph" />
+            android:onClick="clearGraph"
+            android:layout_weight="2.43" />
+
+        <Button
+            android:text="@string/buttonUpload"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/button7" />
+
+        <Button
+            android:text="@string/buttonDownload"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/button8"
+            android:layout_weight="2" />
     </LinearLayout>
 
     <LinearLayout
