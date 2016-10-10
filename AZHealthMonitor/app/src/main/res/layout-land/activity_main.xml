@@ -88,7 +88,8 @@
             android:layout_width="67dp"
             android:layout_height="wrap_content"
             android:id="@+id/button3"
-            android:layout_weight="2.64" />
+            android:layout_weight="2.64"
+            android:onClick="createTable" />
 
         <Button
             android:layout_width="71dp"
@@ -110,14 +111,16 @@
             android:text="@string/buttonUpload"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:id="@+id/button7" />
+            android:id="@+id/button7"
+            android:onClick="uploadData" />
 
         <Button
             android:text="@string/buttonDownload"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/button8"
-            android:layout_weight="2" />
+            android:layout_weight="2"
+            android:onClick="downloadData" />
     </LinearLayout>
 
     <LinearLayout
