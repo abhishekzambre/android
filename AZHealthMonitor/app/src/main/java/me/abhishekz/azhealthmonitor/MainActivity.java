@@ -1,9 +1,13 @@
 package me.abhishekz.azhealthmonitor;
 
+import android.Manifest;
+import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -12,6 +16,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.PowerManager;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
@@ -123,6 +128,8 @@ public class MainActivity extends AppCompatActivity {
         layout.addView(graphView);
 
         myDB = new DatabaseHelper(this);
+
+        verifyStoragePermissions(MainActivity.this);
 
     }
 
@@ -265,8 +272,11 @@ public class MainActivity extends AppCompatActivity {
         Toast.makeText(getApplicationContext(), "Database downloaded successfully", Toast.LENGTH_SHORT).show();
 
         //Getting table name and values from database file
+
+        SQLiteDatabase dl_db = SQLiteDatabase.openDatabase(Environment.getExternalStorageDirectory().getPath() + "/AZHealthMonitor.db", null, 0);
+
         String last_table = "";
-        Cursor res = myDB.getLastTable();
+        Cursor res = dl_db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' and name != 'android_metadata' ORDER BY name DESC LIMIT 1", null);
         while (res.moveToNext()) {
             last_table = res.getString(0);
         }
@@ -281,11 +291,11 @@ public class MainActivity extends AppCompatActivity {
         String[] record = last_table.split("_");
 
         //Displaying patient record in Edit views
-        Log.i(TAG, "Data : " + record[0]);
         textFirst.setText(record[0]);
         textLast.setText(record[1]);
         textID.setText(record[2]);
         textAge.setText(record[3]);
+
         if (record[4].equals("Male")) {
             radioSex.check(R.id.radioMale);
         } else {
@@ -293,7 +303,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         //Displaying last 10 secods from database on the graph
-        res = myDB.getAllData(last_table);
+        res = dl_db.rawQuery("SELECT * FROM " + last_table + " ORDER BY TIMESTAMP DESC LIMIT 10", null);
         int i = 9;
         while (res.moveToNext()) {
             values[i] = res.getLong(1);
@@ -618,5 +628,25 @@ public class MainActivity extends AppCompatActivity {
             //}
         }
 
+    }
+
+    private static final int REQUEST_EXTERNAL_STORAGE = 1;
+    private static String[] PERMISSIONS_STORAGE = {
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
+    };
+
+    public static void verifyStoragePermissions(Activity activity) {
+        // Check if we have write permission
+        int permission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+
+        if (permission != PackageManager.PERMISSION_GRANTED) {
+            // We don't have permission so prompt the user
+            ActivityCompat.requestPermissions(
+                    activity,
+                    PERMISSIONS_STORAGE,
+                    REQUEST_EXTERNAL_STORAGE
+            );
+        }
     }
 }

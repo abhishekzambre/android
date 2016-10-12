@@ -3,27 +3,32 @@ CSE 535 Mobile Computing
 Assignment No. 1
 ------------------------
 
-Name : Abhishek Zambre
+Name 1 : Abhishek Zambre
 ASU ID : 1210933864
 Email ID : abhishek.zambre@asu.edu
 Contact : +1 (480) 410 0219
 
+Name 2 : Mayank Khullar
+ASU ID : 1210873882
+Email ID : mayank.khullar@asu.edu
+Contact : +1 (480) 465 7980
+
 App Name : AZ Health Monitor
 
 Description :
-App generates data based on values recorded by light sensor. Instead of using random numbers, I have initialized SensorManager object, and attached listener to it. It will record light intensity in the room and will provide corresponding data to GraphView object.
-
-Please note, in order to test the app, please run it on external device (instead of emulator), and hover your hand over the screen (where usually light sensor is located). It will show the change in values, and will display graph accordingly.
+App to gather patient details and display Accelerometer values on Graph.
 
 Features :
-1. Used light sensor to generate data.
+1. Used Acceleromter sensor to generate data.
 2. Auto-rotate (Portrait + Landscape) view supported.
 3. Input validation.
-4. About page added using Menu.
+4. Upload database on server.
+5. Download database from server.
+6. Extract data and displays it in Graph.
+7. About page added using Menu.
 
 Tested on : Google Nexus 5X, Samsung Galaxy Note 4, Motorola Moto G4, Samsung Galaxy Note 2.
 
 Please contact in case any issues/bugs.
-
 
 GitHub : https://github.com/abhishekzambre
