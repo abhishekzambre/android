@@ -15,14 +15,15 @@
     <string name="buttonUpload">Upload</string>
     <string name="buttonDownload">Download</string>
     <string name="aboutHead">CSE 535 : Mobile Computing</string>
-    <string name="aboutAssign">Assignment No. 01</string>
+    <string name="aboutAssign">Assignment No. 02</string>
     <string name="aboutText">
         <b>App Name :</b> AZ Health Monitor\n\n
         <b>Version :</b> 2.0\n\n
         <b>Author :</b> Abhishek Zambre\n\n
         <b>Website :</b> <a href="abhiz.me" target="_blank">abhiz.me</a>\n\n
         <b>Class :</b> Master of Computer Science (MCS), Arizona State University\n\n
-        <b>Description :</b> Extension to v1.0 with addition to Network and Database Connectivity \n\n
-        <b>Features :</b> Light sensor from v1.0 is replaced with Accelerometer sensor.
+        <b>Description :</b> Extension to v1.0 with addition to Network and Database Connectivity.\n\n
+        Light sensor from v1.0 is replaced with <b>Accelerometer</b> sensor.\n\n Added 3 new buttons. <b>Save</b> creates a new database, starts sensor, and inserts values in table.
+        <b>Upload</b> will upload database file to the server. <b>Download</b> will download database file from server and will display contents of it on Graph and Text Fields.
     </string>
 </resources>

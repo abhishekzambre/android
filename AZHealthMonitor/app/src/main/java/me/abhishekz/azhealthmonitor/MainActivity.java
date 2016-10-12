@@ -20,7 +20,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.Button;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -49,28 +48,39 @@ import javax.net.ssl.X509TrustManager;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String TAG = MainActivity.class.getSimpleName();
-    ProgressDialog mProgressDialog;
+    //Declaration of variables used for Layout objects
+    TextView textFirst, textLast, textID, textAge;
+    RadioGroup radioSex;
 
-    DatabaseHelper myDB;
+    //Declaration of variables used for GraphView
     float[] values = new float[10];
     String[] verlabels = new String[]{"3000", "2500", "2000", "1500", "1000", "500", "0"};
     String[] horlabels = new String[]{"0", "50", "100", "150", "200", "250", "300", "350", "400"};
-    boolean SensorInitialized = false;
-    boolean show_graph = false;
-    private long lastUpdate = 0;
-    boolean dbCreated=false;
-    String table_name="";
-
     GraphView graphView;
     ViewGroup layout;
-    TextView textView, textFirst, textLast, textID, textAge;
-    RadioGroup radioSex;
-    Button startButton, stopButton, saveButton;
 
+    //Declaration of variables used for Sensor
+    boolean SensorInitialized = false;
+    SensorManager mySensorManager;
+    Sensor AccelSensor;
+
+    //Declaration of variables used for Database access
+    DatabaseHelper myDB;
+    String table_name = "";
+    boolean dbCreated = false;
+    String dbFilePath;
+
+    //Miscellaneous variables
     String upLoadServerUrl = "https://impact.asu.edu/CSE535Fall16Folder/UploadToServer.php";
+    InputMethodManager inputManager;
+    ProgressDialog dialog = null;
+    ProgressDialog mProgressDialog;
+    private long lastUpdate = 0;
+    boolean show_graph = false;
+    private static final String TAG = MainActivity.class.getSimpleName();
 
 
+    //Accelerometer sensor listener class
     private final SensorEventListener AccelSensorListener = new SensorEventListener() {
 
         @Override
@@ -83,9 +93,10 @@ public class MainActivity extends AppCompatActivity {
 
                 long curTime = System.currentTimeMillis();
 
+                //Achieving sampling frequency of 1Hz.
                 if ((curTime - lastUpdate) > 1000) {
                     lastUpdate = curTime;
-                    boolean isInserted = myDB.insertData(table_name, Long.toString(curTime), event.values[0], event.values[1], event.values[2]);
+                    myDB.insertData(table_name, Long.toString(curTime), event.values[0], event.values[1], event.values[2]);
                     if (show_graph) {
                         replaceQueue(event.values[0]);
                     }
@@ -96,22 +107,12 @@ public class MainActivity extends AppCompatActivity {
         }
 
     };
-    InputMethodManager inputManager;
-    SensorManager mySensorManager;
-    Sensor AccelSensor;
-
-    ProgressDialog dialog = null;
-    String dbFilePath;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        startButton = (Button)findViewById(R.id.button);
-        stopButton = (Button)findViewById(R.id.button2);
-        saveButton = (Button)findViewById(R.id.button3);
-        textView = (TextView) findViewById(R.id.textView3);
         layout = (ViewGroup) findViewById(R.id.graphLayout);
 
         mySensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
@@ -125,21 +126,23 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public void createTable(View view){
+    //When Save button clicked
+    public void createTable(View view) {
 
+        //Hide keyboard when Save button clicked
         inputManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         inputManager.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+
 
         textFirst = (TextView) findViewById(R.id.editText);
         textLast = (TextView) findViewById(R.id.editText2);
         textID = (TextView) findViewById(R.id.editText3);
         textAge = (TextView) findViewById(R.id.editText4);
         radioSex = (RadioGroup) findViewById(R.id.radioSex);
-
         int index = radioSex.indexOfChild(findViewById(radioSex.getCheckedRadioButtonId()));
-        String sex = ((index == 1) ? "Female" : "Male" );
+        String sex = ((index == 1) ? "Female" : "Male");
 
-
+        //Input validation checks
         if (textFirst.getText().toString().trim().equals("")) {
             Toast.makeText(getApplicationContext(), "First Name is empty", Toast.LENGTH_SHORT).show();
         } else if (textLast.getText().toString().trim().equals("")) {
@@ -150,105 +153,34 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(getApplicationContext(), "Age is empty", Toast.LENGTH_SHORT).show();
         } else {
             table_name = textFirst.getText().toString() + "_" + textLast.getText().toString() + "_" + textID.getText().toString() + "_" + textAge.getText().toString() + "_" + sex;
-            table_name = table_name.replaceAll("\\s+","");
-            //myDB = new DatabaseHelper(this, table_name);
+            table_name = table_name.replaceAll("\\s+", "");
 
+            //Creating table with values as -> FirstName_LastName_ID_Age_Sex
             myDB.createTable(table_name);
-            dbCreated=true;
+            dbCreated = true;
 
-            if(!SensorInitialized) {
+            //Initialize sensor and starts gathering data
+            if (!SensorInitialized) {
                 if (AccelSensor != null) {
                     mySensorManager.registerListener(AccelSensorListener, AccelSensor, SensorManager.SENSOR_DELAY_NORMAL);
                 }
                 SensorInitialized = true;
             }
-            Toast.makeText(getApplicationContext(), "Data saved successfully" , Toast.LENGTH_SHORT).show();
+            Toast.makeText(getApplicationContext(), "Data saved successfully", Toast.LENGTH_SHORT).show();
         }
     }
 
-    public void uploadData(View view){
-        Context ctx = this;
-        String dbname = "AZHealthMonitor.db";
-        File dbfile = ctx.getDatabasePath(dbname);
-        dbFilePath = dbfile.getAbsolutePath();
-        //Toast.makeText(getApplicationContext(), "File : " + dbfile.getAbsolutePath(), Toast.LENGTH_SHORT).show();
-
-        dialog = ProgressDialog.show(this, "", "Uploading file...", true);
-
-        new Thread(new Runnable() {
-            public void run() {
-                runOnUiThread(new Runnable() {
-                    public void run() {
-                        //Toast.makeText(getApplicationContext(), "Upload started : " + dbFilePath, Toast.LENGTH_SHORT).show();
-                    }
-                });
-
-                uploadFile(dbFilePath);
-
-            }
-        }).start();
-    }
-
-    public void downloadData(View view){
-
-        mProgressDialog = new ProgressDialog(MainActivity.this);
-        mProgressDialog.setMessage("A message");
-        mProgressDialog.setIndeterminate(true);
-        mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-        mProgressDialog.setCancelable(true);
-
-        final DownloadTask downloadTask = new DownloadTask(MainActivity.this);
-        downloadTask.execute("https://impact.asu.edu/CSE535Fall16Folder/"+"AZHealthMonitor.db","AZHealthMonitor.db");
-
-        Toast.makeText(getApplicationContext(), "Database downloaded successfully" , Toast.LENGTH_SHORT).show();
-
-
-        String last_table="";
-        Cursor res = myDB.getLastTable();
-        while (res.moveToNext()) {
-            last_table=res.getString(0);
-        }
-        res.close();
-
-        textFirst = (TextView) findViewById(R.id.editText);
-        textLast = (TextView) findViewById(R.id.editText2);
-        textID = (TextView) findViewById(R.id.editText3);
-        textAge = (TextView) findViewById(R.id.editText4);
-        radioSex = (RadioGroup) findViewById(R.id.radioSex);
-
-        String[] record = last_table.split("_");
-
-        Log.i(TAG, "Data : " + record[0]);
-        textFirst.setText(record[0]);
-        textLast.setText(record[1]);
-        textID.setText(record[2]);
-        textAge.setText(record[3]);
-        if (record[4].equals("Male")){
-            radioSex.check(R.id.radioMale);
-        }
-        else{
-            radioSex.check(R.id.radioFemale);
-        }
-
-        res=myDB.getAllData(last_table);
-        int i = 9;
-        while (res.moveToNext()) {
-            values[i] = res.getLong(1);
-            i--;
-        }
-        res.close();
-        graphView.invalidate();
-        graphView.setValues(values);
-
-    }
-
+    //When Start button clicked
     public void displayGraph(View view) {
 
+        //Hide keyboard when Start button clicked
         inputManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         inputManager.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+
+        //If Database is created, pulling last 10 seconds values from database and displaying on the graph
         if (dbCreated) {
-            show_graph=true;
-            if (!SensorInitialized){
+            show_graph = true;
+            if (!SensorInitialized) {
                 if (AccelSensor != null) {
                     mySensorManager.registerListener(AccelSensorListener, AccelSensor, SensorManager.SENSOR_DELAY_NORMAL);
                 }
@@ -264,18 +196,20 @@ public class MainActivity extends AppCompatActivity {
             res.close();
             graphView.invalidate();
             graphView.setValues(values);
-        }
-        else{
-            Toast.makeText(getApplicationContext(), "Please save patient data." , Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(getApplicationContext(), "Please save patient data.", Toast.LENGTH_SHORT).show();
         }
 
     }
 
+    //When Stop button clicked
     public void clearGraph(View view) {
+
+        //Clearing graph and stopping sensor
         for (int i = 0; i < values.length; i++)
             values[i] = 0f;
 
-        show_graph=false;
+        show_graph = false;
         graphView.invalidate();
         graphView.setValues(values);
 
@@ -283,9 +217,95 @@ public class MainActivity extends AppCompatActivity {
             mySensorManager.unregisterListener(AccelSensorListener, mySensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER));
             SensorInitialized = false;
         }
-        textView.setText(R.string.textMonitorVal);
     }
 
+    //When Upload button clicked
+    public void uploadData(View view) {
+
+        if (SensorInitialized) {
+            mySensorManager.unregisterListener(AccelSensorListener, mySensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER));
+            SensorInitialized = false;
+        }
+
+        Context ctx = this;
+        String dbname = "AZHealthMonitor.db";
+        File dbfile = ctx.getDatabasePath(dbname);
+        dbFilePath = dbfile.getAbsolutePath();
+        dialog = ProgressDialog.show(this, "", "Uploading file...", true);
+
+        //Method call for upload file
+        new Thread(new Runnable() {
+            public void run() {
+                runOnUiThread(new Runnable() {
+                    public void run() {}
+                });
+                uploadFile(dbFilePath);
+            }
+        }).start();
+    }
+
+    //When Download button clicked
+    public void downloadData(View view) {
+
+        mProgressDialog = new ProgressDialog(MainActivity.this);
+        mProgressDialog.setMessage("A message");
+        mProgressDialog.setIndeterminate(true);
+        mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+        mProgressDialog.setCancelable(true);
+
+        if (SensorInitialized) {
+            mySensorManager.unregisterListener(AccelSensorListener, mySensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER));
+            SensorInitialized = false;
+        }
+
+        //Downloading database file
+        final DownloadTask downloadTask = new DownloadTask(MainActivity.this);
+        downloadTask.execute("https://impact.asu.edu/CSE535Fall16Folder/" + "AZHealthMonitor.db", "AZHealthMonitor.db");
+
+        Toast.makeText(getApplicationContext(), "Database downloaded successfully", Toast.LENGTH_SHORT).show();
+
+        //Getting table name and values from database file
+        String last_table = "";
+        Cursor res = myDB.getLastTable();
+        while (res.moveToNext()) {
+            last_table = res.getString(0);
+        }
+        res.close();
+
+        textFirst = (TextView) findViewById(R.id.editText);
+        textLast = (TextView) findViewById(R.id.editText2);
+        textID = (TextView) findViewById(R.id.editText3);
+        textAge = (TextView) findViewById(R.id.editText4);
+        radioSex = (RadioGroup) findViewById(R.id.radioSex);
+
+        String[] record = last_table.split("_");
+
+        //Displaying patient record in Edit views
+        Log.i(TAG, "Data : " + record[0]);
+        textFirst.setText(record[0]);
+        textLast.setText(record[1]);
+        textID.setText(record[2]);
+        textAge.setText(record[3]);
+        if (record[4].equals("Male")) {
+            radioSex.check(R.id.radioMale);
+        } else {
+            radioSex.check(R.id.radioFemale);
+        }
+
+        //Displaying last 10 secods from database on the graph
+        res = myDB.getAllData(last_table);
+        int i = 9;
+        while (res.moveToNext()) {
+            values[i] = res.getLong(1);
+            i--;
+        }
+        res.close();
+        graphView.invalidate();
+        graphView.setValues(values);
+
+    }
+
+    //For About menu
     public boolean onCreateOptionsMenu(Menu menu) {
 
         MenuInflater inflater = getMenuInflater();
@@ -293,6 +313,7 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
+    //For About menu
     public boolean onOptionsItemSelected(MenuItem item) {
 
         switch (item.getItemId()) {
@@ -304,13 +325,14 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    //Shift values of array to the left
     void replaceQueue(float a) {
         for (int i = 1; i < values.length; i++)
             values[i - 1] = values[i];
         values[values.length - 1] = a;
     }
 
-
+    //Method which uploads file to server
     public int uploadFile(String selectedFilePath) {
 
         // Create a trust manager that does not validate certificate chains
@@ -348,16 +370,16 @@ public class MainActivity extends AppCompatActivity {
         String boundary = "*****";
 
 
-        int bytesRead,bytesAvailable,bufferSize;
+        int bytesRead, bytesAvailable, bufferSize;
         byte[] buffer;
         int maxBufferSize = 1024 * 1024;
         File selectedFile = new File(selectedFilePath);
 
 
         String[] parts = selectedFilePath.split("/");
-        final String fileName = parts[parts.length-1];
+        final String fileName = parts[parts.length - 1];
 
-        if (!selectedFile.isFile()){
+        if (!selectedFile.isFile()) {
             dialog.dismiss();
 
             runOnUiThread(new Runnable() {
@@ -367,8 +389,8 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
             return 0;
-        }else{
-            try{
+        } else {
+            try {
                 FileInputStream fileInputStream = new FileInputStream(selectedFile);
                 URL url = new URL(upLoadServerUrl);
                 connection = (HttpURLConnection) url.openConnection();
@@ -379,7 +401,7 @@ public class MainActivity extends AppCompatActivity {
                 connection.setRequestProperty("Connection", "Keep-Alive");
                 connection.setRequestProperty("ENCTYPE", "multipart/form-data");
                 connection.setRequestProperty("Content-Type", "multipart/form-data;boundary=" + boundary);
-                connection.setRequestProperty("uploaded_file",selectedFilePath);
+                connection.setRequestProperty("uploaded_file", selectedFilePath);
 
                 //creating new dataoutputstream
                 dataOutputStream = new DataOutputStream(connection.getOutputStream());
@@ -394,20 +416,20 @@ public class MainActivity extends AppCompatActivity {
                 //returns no. of bytes present in fileInputStream
                 bytesAvailable = fileInputStream.available();
                 //selecting the buffer size as minimum of available bytes or 1 MB
-                bufferSize = Math.min(bytesAvailable,maxBufferSize);
+                bufferSize = Math.min(bytesAvailable, maxBufferSize);
                 //setting the buffer as byte array of size of bufferSize
                 buffer = new byte[bufferSize];
 
                 //reads bytes from FileInputStream(from 0th index of buffer to buffersize)
-                bytesRead = fileInputStream.read(buffer,0,bufferSize);
+                bytesRead = fileInputStream.read(buffer, 0, bufferSize);
 
                 //loop repeats till bytesRead = -1, i.e., no bytes are left to read
-                while (bytesRead > 0){
+                while (bytesRead > 0) {
                     //write the bytes read from inputstream
-                    dataOutputStream.write(buffer,0,bufferSize);
+                    dataOutputStream.write(buffer, 0, bufferSize);
                     bytesAvailable = fileInputStream.available();
-                    bufferSize = Math.min(bytesAvailable,maxBufferSize);
-                    bytesRead = fileInputStream.read(buffer,0,bufferSize);
+                    bufferSize = Math.min(bytesAvailable, maxBufferSize);
+                    bytesRead = fileInputStream.read(buffer, 0, bufferSize);
                 }
 
                 dataOutputStream.writeBytes(lineEnd);
@@ -419,12 +441,12 @@ public class MainActivity extends AppCompatActivity {
                 Log.i(TAG, "Server Response is: " + serverResponseMessage + ": " + serverResponseCode);
 
                 //response code of 200 indicates the server status OK
-                if(serverResponseCode == 200){
+                if (serverResponseCode == 200) {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
                             //tvFileName.setText("File Upload completed.\n\n You can see the uploaded file here: \n\n" + "http://coderefer.com/extras/uploads/"+ fileName);
-                            Toast.makeText(MainActivity.this,"File Uploaded Complete.\n\nFile Location : https://impact.asu.edu/CSE535Fall16Folder/AZHealthMonitor.db",Toast.LENGTH_LONG).show();
+                            Toast.makeText(MainActivity.this, "File Uploaded Complete.\n\nFile Location : https://impact.asu.edu/CSE535Fall16Folder/AZHealthMonitor.db", Toast.LENGTH_LONG).show();
                         }
                     });
                 }
@@ -435,13 +457,12 @@ public class MainActivity extends AppCompatActivity {
                 dataOutputStream.close();
 
 
-
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(MainActivity.this,"File Not Found",Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, "File Not Found", Toast.LENGTH_SHORT).show();
                     }
                 });
             } catch (MalformedURLException e) {
@@ -458,6 +479,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    //To download file from the server
     private class DownloadTask extends AsyncTask<String, Integer, String> {
 
         private Context context;
@@ -473,7 +495,7 @@ public class MainActivity extends AppCompatActivity {
             InputStream input = null;
             OutputStream output = null;
             HttpsURLConnection connection = null;
-            TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
+            TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager() {
                 public X509Certificate[] getAcceptedIssuers() {
                     return null;
                 }
@@ -487,7 +509,7 @@ public class MainActivity extends AppCompatActivity {
                 public void checkServerTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {
                     // Not implemented
                 }
-            } };
+            }};
 
             try {
                 SSLContext sc = SSLContext.getInstance("TLS");
@@ -521,7 +543,7 @@ public class MainActivity extends AppCompatActivity {
                 // download the file
                 input = connection.getInputStream();
 
-                output = new FileOutputStream(Environment.getExternalStorageDirectory().getPath()+"/"+sUrl[1]);
+                output = new FileOutputStream(Environment.getExternalStorageDirectory().getPath() + "/" + sUrl[1]);
 
                 //downloadButton.setText("Connecting .....");
                 byte data[] = new byte[4096];
@@ -560,7 +582,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
-
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
@@ -586,13 +607,13 @@ public class MainActivity extends AppCompatActivity {
         protected void onPostExecute(String result) {
             mWakeLock.release();
             mProgressDialog.dismiss();
-            if (result != null){
-                Toast.makeText(context,"Download error: "+result, Toast.LENGTH_LONG).show();
+            if (result != null) {
+                Toast.makeText(context, "Download error: " + result, Toast.LENGTH_LONG).show();
 
 
             }
             //else{
-                //Toast.makeText(context,"File downloaded", Toast.LENGTH_SHORT).show();
+            //Toast.makeText(context,"File downloaded", Toast.LENGTH_SHORT).show();
 
             //}
         }
