@@ -313,6 +313,8 @@ public class MainActivity extends AppCompatActivity {
         graphView.invalidate();
         graphView.setValues(values);
 
+        dl_db.close();
+
     }
 
     //For About menu
