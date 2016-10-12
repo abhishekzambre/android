@@ -1,20 +1,19 @@
 package me.abhishekz.azhealthmonitor;
 
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
-import android.database.SQLException;
-import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteException;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.os.Environment;
-import android.os.Handler;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.PowerManager;
+import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -26,10 +25,32 @@ import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.DataOutputStream;
 import java.io.File;
-import java.util.Queue;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 public class MainActivity extends AppCompatActivity {
+
+    private static final String TAG = MainActivity.class.getSimpleName();
+    ProgressDialog mProgressDialog;
 
     DatabaseHelper myDB;
     float[] values = new float[10];
@@ -38,13 +59,17 @@ public class MainActivity extends AppCompatActivity {
     boolean SensorInitialized = false;
     boolean show_graph = false;
     private long lastUpdate = 0;
+    boolean dbCreated=false;
     String table_name="";
 
     GraphView graphView;
     ViewGroup layout;
     TextView textView, textFirst, textLast, textID, textAge;
     RadioGroup radioSex;
-    Button startButton;
+    Button startButton, stopButton, saveButton;
+
+    String upLoadServerUrl = "https://impact.asu.edu/CSE535Fall16Folder/UploadToServer.php";
+
 
     private final SensorEventListener AccelSensorListener = new SensorEventListener() {
 
@@ -60,19 +85,12 @@ public class MainActivity extends AppCompatActivity {
 
                 if ((curTime - lastUpdate) > 1000) {
                     lastUpdate = curTime;
-                    boolean isInserted = myDB.insertData(Long.toString(curTime), event.values[0], event.values[1], event.values[2]);
-                    Toast.makeText(getApplicationContext(), "DB Status " + isInserted, Toast.LENGTH_SHORT).show();
-
+                    boolean isInserted = myDB.insertData(table_name, Long.toString(curTime), event.values[0], event.values[1], event.values[2]);
                     if (show_graph) {
-                        Cursor res = myDB.getAllData();
-                        int i = 9;
-                        while (res.moveToNext()) {
-                            values[i] = res.getLong(1);
-                            i--;
-                        }
-                        graphView.invalidate();
-                        graphView.setValues(values);
+                        replaceQueue(event.values[0]);
                     }
+                    graphView.invalidate();
+                    graphView.setValues(values);
                 }
             }
         }
@@ -82,16 +100,19 @@ public class MainActivity extends AppCompatActivity {
     SensorManager mySensorManager;
     Sensor AccelSensor;
 
+    ProgressDialog dialog = null;
+    String dbFilePath;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         startButton = (Button)findViewById(R.id.button);
+        stopButton = (Button)findViewById(R.id.button2);
+        saveButton = (Button)findViewById(R.id.button3);
         textView = (TextView) findViewById(R.id.textView3);
         layout = (ViewGroup) findViewById(R.id.graphLayout);
-
-        startButton.setEnabled(false);
 
         mySensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         AccelSensor = mySensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -99,6 +120,8 @@ public class MainActivity extends AppCompatActivity {
         graphView = new GraphView(this, values, "AZ Health Monitor", horlabels, verlabels, GraphView.LINE);
         graphView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         layout.addView(graphView);
+
+        myDB = new DatabaseHelper(this);
 
     }
 
@@ -128,71 +151,124 @@ public class MainActivity extends AppCompatActivity {
         } else {
             table_name = textFirst.getText().toString() + "_" + textLast.getText().toString() + "_" + textID.getText().toString() + "_" + textAge.getText().toString() + "_" + sex;
             table_name = table_name.replaceAll("\\s+","");
-            myDB = new DatabaseHelper(this, table_name);
-           // boolean isInserted = myDB.insertData("Asdf","Ghjk","Qwer");
-           // Toast.makeText(getApplicationContext(), "DB Status " + isInserted, Toast.LENGTH_SHORT).show();
-        }
-        textFirst.setEnabled(false);
-        textLast.setEnabled(false);
-        textID.setEnabled(false);
-        textAge.setEnabled(false);
-        startButton.setEnabled(true);
+            //myDB = new DatabaseHelper(this, table_name);
 
-        if(!SensorInitialized) {
-            if (AccelSensor != null) {
-                mySensorManager.registerListener(AccelSensorListener, AccelSensor, SensorManager.SENSOR_DELAY_NORMAL);
+            myDB.createTable(table_name);
+            dbCreated=true;
+
+            if(!SensorInitialized) {
+                if (AccelSensor != null) {
+                    mySensorManager.registerListener(AccelSensorListener, AccelSensor, SensorManager.SENSOR_DELAY_NORMAL);
+                }
+                SensorInitialized = true;
             }
-            SensorInitialized = true;
+            Toast.makeText(getApplicationContext(), "Data saved successfully" , Toast.LENGTH_SHORT).show();
         }
     }
 
     public void uploadData(View view){
-        Cursor res = myDB.getAllData();
-        if (res.getCount() == 0){
-            showMessage("Error", "No data found");
-            return;
-        } else {
-            StringBuffer buffer = new StringBuffer();
-            while (res.moveToNext()){
-                buffer.append("Timestamp : " + res.getString(0) + "\n");
-                buffer.append("X : " + res.getString(1) + "\n");
-                buffer.append("Y : " + res.getString(2) + "\n");
-                buffer.append("Z : " + res.getString(3) + "\n\n");
+        Context ctx = this;
+        String dbname = "AZHealthMonitor.db";
+        File dbfile = ctx.getDatabasePath(dbname);
+        dbFilePath = dbfile.getAbsolutePath();
+        //Toast.makeText(getApplicationContext(), "File : " + dbfile.getAbsolutePath(), Toast.LENGTH_SHORT).show();
+
+        dialog = ProgressDialog.show(this, "", "Uploading file...", true);
+
+        new Thread(new Runnable() {
+            public void run() {
+                runOnUiThread(new Runnable() {
+                    public void run() {
+                        //Toast.makeText(getApplicationContext(), "Upload started : " + dbFilePath, Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+                uploadFile(dbFilePath);
+
             }
-
-            showMessage("Data", buffer.toString());
-        }
-        res.close();
-    }
-
-    public void showMessage(String title, String message){
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setCancelable(true);
-        builder.setTitle(title);
-        builder.setMessage(message);
-        builder.show();
+        }).start();
     }
 
     public void downloadData(View view){
-        Toast.makeText(getApplicationContext(), "Data downloaded successfully" , Toast.LENGTH_SHORT).show();
+
+        mProgressDialog = new ProgressDialog(MainActivity.this);
+        mProgressDialog.setMessage("A message");
+        mProgressDialog.setIndeterminate(true);
+        mProgressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+        mProgressDialog.setCancelable(true);
+
+        final DownloadTask downloadTask = new DownloadTask(MainActivity.this);
+        downloadTask.execute("https://impact.asu.edu/CSE535Fall16Folder/"+"AZHealthMonitor.db","AZHealthMonitor.db");
+
+        Toast.makeText(getApplicationContext(), "Database downloaded successfully" , Toast.LENGTH_SHORT).show();
+
+
+        String last_table="";
+        Cursor res = myDB.getLastTable();
+        while (res.moveToNext()) {
+            last_table=res.getString(0);
+        }
+        res.close();
+
+        textFirst = (TextView) findViewById(R.id.editText);
+        textLast = (TextView) findViewById(R.id.editText2);
+        textID = (TextView) findViewById(R.id.editText3);
+        textAge = (TextView) findViewById(R.id.editText4);
+        radioSex = (RadioGroup) findViewById(R.id.radioSex);
+
+        String[] record = last_table.split("_");
+
+        Log.i(TAG, "Data : " + record[0]);
+        textFirst.setText(record[0]);
+        textLast.setText(record[1]);
+        textID.setText(record[2]);
+        textAge.setText(record[3]);
+        if (record[4].equals("Male")){
+            radioSex.check(R.id.radioMale);
+        }
+        else{
+            radioSex.check(R.id.radioFemale);
+        }
+
+        res=myDB.getAllData(last_table);
+        int i = 9;
+        while (res.moveToNext()) {
+            values[i] = res.getLong(1);
+            i--;
+        }
+        res.close();
+        graphView.invalidate();
+        graphView.setValues(values);
+
     }
 
     public void displayGraph(View view) {
 
         inputManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         inputManager.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
-
-        for (int i = 0; i < values.length; i++)
-            values[i] = 0f;
-        show_graph=true;
-        if (!SensorInitialized){
-            if (AccelSensor != null) {
-                mySensorManager.registerListener(AccelSensorListener, AccelSensor, SensorManager.SENSOR_DELAY_NORMAL);
+        if (dbCreated) {
+            show_graph=true;
+            if (!SensorInitialized){
+                if (AccelSensor != null) {
+                    mySensorManager.registerListener(AccelSensorListener, AccelSensor, SensorManager.SENSOR_DELAY_NORMAL);
+                }
+                SensorInitialized = true;
             }
-            SensorInitialized = true;
+
+            Cursor res = myDB.getAllData(table_name);
+            int i = 9;
+            while (res.moveToNext()) {
+                values[i] = res.getLong(1);
+                i--;
+            }
+            res.close();
+            graphView.invalidate();
+            graphView.setValues(values);
         }
-        //graphView.invalidate();
-        //graphView.setValues(values);
+        else{
+            Toast.makeText(getApplicationContext(), "Please save patient data." , Toast.LENGTH_SHORT).show();
+        }
+
     }
 
     public void clearGraph(View view) {
@@ -203,10 +279,10 @@ public class MainActivity extends AppCompatActivity {
         graphView.invalidate();
         graphView.setValues(values);
 
-        if (SensorInitialized)
+        if (SensorInitialized) {
             mySensorManager.unregisterListener(AccelSensorListener, mySensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER));
-        else
             SensorInitialized = false;
+        }
         textView.setText(R.string.textMonitorVal);
     }
 
@@ -232,5 +308,294 @@ public class MainActivity extends AppCompatActivity {
         for (int i = 1; i < values.length; i++)
             values[i - 1] = values[i];
         values[values.length - 1] = a;
+    }
+
+
+    public int uploadFile(String selectedFilePath) {
+
+        // Create a trust manager that does not validate certificate chains
+        TrustManager[] trustAllCerts = new TrustManager[]{
+                new X509TrustManager() {
+                    public X509Certificate[] getAcceptedIssuers() {
+                        return null;
+                    }
+
+                    public void checkClientTrusted(
+                            X509Certificate[] certs, String authType) {
+                    }
+
+                    public void checkServerTrusted(
+                            X509Certificate[] certs, String authType) {
+                    }
+                }
+        };
+
+        // Install the all-trusting trust manager
+        try {
+            SSLContext sc = SSLContext.getInstance("SSL");
+            sc.init(null, trustAllCerts, new SecureRandom());
+            HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        int serverResponseCode = 0;
+
+        HttpURLConnection connection;
+        DataOutputStream dataOutputStream;
+        String lineEnd = "\r\n";
+        String twoHyphens = "--";
+        String boundary = "*****";
+
+
+        int bytesRead,bytesAvailable,bufferSize;
+        byte[] buffer;
+        int maxBufferSize = 1024 * 1024;
+        File selectedFile = new File(selectedFilePath);
+
+
+        String[] parts = selectedFilePath.split("/");
+        final String fileName = parts[parts.length-1];
+
+        if (!selectedFile.isFile()){
+            dialog.dismiss();
+
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    //tvFileName.setText("Source File Doesn't Exist: " + selectedFilePath);
+                }
+            });
+            return 0;
+        }else{
+            try{
+                FileInputStream fileInputStream = new FileInputStream(selectedFile);
+                URL url = new URL(upLoadServerUrl);
+                connection = (HttpURLConnection) url.openConnection();
+                connection.setDoInput(true);//Allow Inputs
+                connection.setDoOutput(true);//Allow Outputs
+                connection.setUseCaches(false);//Don't use a cached Copy
+                connection.setRequestMethod("POST");
+                connection.setRequestProperty("Connection", "Keep-Alive");
+                connection.setRequestProperty("ENCTYPE", "multipart/form-data");
+                connection.setRequestProperty("Content-Type", "multipart/form-data;boundary=" + boundary);
+                connection.setRequestProperty("uploaded_file",selectedFilePath);
+
+                //creating new dataoutputstream
+                dataOutputStream = new DataOutputStream(connection.getOutputStream());
+
+                //writing bytes to data outputstream
+                dataOutputStream.writeBytes(twoHyphens + boundary + lineEnd);
+                dataOutputStream.writeBytes("Content-Disposition: form-data; name=\"uploaded_file\";filename=\""
+                        + selectedFilePath + "\"" + lineEnd);
+
+                dataOutputStream.writeBytes(lineEnd);
+
+                //returns no. of bytes present in fileInputStream
+                bytesAvailable = fileInputStream.available();
+                //selecting the buffer size as minimum of available bytes or 1 MB
+                bufferSize = Math.min(bytesAvailable,maxBufferSize);
+                //setting the buffer as byte array of size of bufferSize
+                buffer = new byte[bufferSize];
+
+                //reads bytes from FileInputStream(from 0th index of buffer to buffersize)
+                bytesRead = fileInputStream.read(buffer,0,bufferSize);
+
+                //loop repeats till bytesRead = -1, i.e., no bytes are left to read
+                while (bytesRead > 0){
+                    //write the bytes read from inputstream
+                    dataOutputStream.write(buffer,0,bufferSize);
+                    bytesAvailable = fileInputStream.available();
+                    bufferSize = Math.min(bytesAvailable,maxBufferSize);
+                    bytesRead = fileInputStream.read(buffer,0,bufferSize);
+                }
+
+                dataOutputStream.writeBytes(lineEnd);
+                dataOutputStream.writeBytes(twoHyphens + boundary + twoHyphens + lineEnd);
+
+                serverResponseCode = connection.getResponseCode();
+                String serverResponseMessage = connection.getResponseMessage();
+
+                Log.i(TAG, "Server Response is: " + serverResponseMessage + ": " + serverResponseCode);
+
+                //response code of 200 indicates the server status OK
+                if(serverResponseCode == 200){
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            //tvFileName.setText("File Upload completed.\n\n You can see the uploaded file here: \n\n" + "http://coderefer.com/extras/uploads/"+ fileName);
+                            Toast.makeText(MainActivity.this,"File Uploaded Complete.\n\nFile Location : https://impact.asu.edu/CSE535Fall16Folder/AZHealthMonitor.db",Toast.LENGTH_LONG).show();
+                        }
+                    });
+                }
+
+                //closing the input and output streams
+                fileInputStream.close();
+                dataOutputStream.flush();
+                dataOutputStream.close();
+
+
+
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(MainActivity.this,"File Not Found",Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+                Toast.makeText(MainActivity.this, "URL error!", Toast.LENGTH_SHORT).show();
+
+            } catch (IOException e) {
+                e.printStackTrace();
+                Toast.makeText(MainActivity.this, "Cannot Read/Write File!", Toast.LENGTH_SHORT).show();
+            }
+            dialog.dismiss();
+            return serverResponseCode;
+        }
+
+    }
+
+    private class DownloadTask extends AsyncTask<String, Integer, String> {
+
+        private Context context;
+        private PowerManager.WakeLock mWakeLock;
+
+        public DownloadTask(Context context) {
+            this.context = context;
+        }
+
+        @Override
+        protected String doInBackground(String... sUrl) {
+            //searchButton = (Button) findViewById(R.id.button1);
+            InputStream input = null;
+            OutputStream output = null;
+            HttpsURLConnection connection = null;
+            TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
+                public X509Certificate[] getAcceptedIssuers() {
+                    return null;
+                }
+
+                @Override
+                public void checkClientTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {
+                    // Not implemented
+                }
+
+                @Override
+                public void checkServerTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {
+                    // Not implemented
+                }
+            } };
+
+            try {
+                SSLContext sc = SSLContext.getInstance("TLS");
+
+                sc.init(null, trustAllCerts, new java.security.SecureRandom());
+
+                HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+            } catch (KeyManagementException e) {
+                e.printStackTrace();
+            } catch (NoSuchAlgorithmException e) {
+                e.printStackTrace();
+            }
+            try {
+                URL url = new URL(sUrl[0]);
+                connection = (HttpsURLConnection) url.openConnection();
+
+                connection.connect();
+
+                // expect HTTP 200 OK, so we don't mistakenly save error report
+                // instead of the file
+                if (connection.getResponseCode() != HttpsURLConnection.HTTP_OK) {
+                    return "Server returned HTTP " + connection.getResponseCode()
+                            + " " + connection.getResponseMessage();
+                }
+
+                // this will be useful to display download percentage
+                // might be -1: server did not report the length
+                int fileLength = connection.getContentLength();
+
+                //downloadButton.setText(Integer.toString(fileLength));
+                // download the file
+                input = connection.getInputStream();
+
+                output = new FileOutputStream(Environment.getExternalStorageDirectory().getPath()+"/"+sUrl[1]);
+
+                //downloadButton.setText("Connecting .....");
+                byte data[] = new byte[4096];
+                long total = 0;
+                int count;
+
+                while ((count = input.read(data)) != -1) {
+                    // allow canceling with back button
+                    if (isCancelled()) {
+                        input.close();
+                        return null;
+                    }
+                    total += count;
+                    // publishing the progress....
+                    if (fileLength > 0) // only if total length is known
+                        publishProgress((int) (total * 100 / fileLength));
+                    output.write(data, 0, count);
+                }
+            } catch (Exception e) {
+                return e.toString();
+            } finally {
+                try {
+                    if (output != null)
+                        output.close();
+                    if (input != null)
+                        input.close();
+                } catch (IOException ignored) {
+                }
+
+                if (connection != null)
+                    connection.disconnect();
+            }
+            return null;
+
+
+        }
+
+
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            // take CPU lock to prevent CPU from going off if the user
+            // presses the power button during download
+            PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+            mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
+                    getClass().getName());
+            mWakeLock.acquire();
+            mProgressDialog.show();
+        }
+
+        @Override
+        protected void onProgressUpdate(Integer... progress) {
+            super.onProgressUpdate(progress);
+            // if we get here, length is known, now set indeterminate to false
+            mProgressDialog.setIndeterminate(false);
+            mProgressDialog.setMax(100);
+            mProgressDialog.setProgress(progress[0]);
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+            mWakeLock.release();
+            mProgressDialog.dismiss();
+            if (result != null){
+                Toast.makeText(context,"Download error: "+result, Toast.LENGTH_LONG).show();
+
+
+            }
+            //else{
+                //Toast.makeText(context,"File downloaded", Toast.LENGTH_SHORT).show();
+
+            //}
+        }
+
     }
 }
